@@ -20,23 +20,74 @@ def generar_pdf_buffer(texto):
     return buffer
 
 # -------- CONFIG --------
-st.set_page_config(page_title="Sistema Ácido-Base", page_icon="🩺", layout="wide")
+st.set_page_config(
+    page_title="Evaluación Ácido-Base",
+    page_icon="",
+    layout="wide"
+)
 
-# -------- ESTILO --------
+# -------- SIDEBAR --------
+with st.sidebar:
+    st.markdown("## Parámetros normales")
+    st.write("pH: 7.35 – 7.45")
+    st.write("HCO3-: 22 – 26")
+    st.write("PCO2: 35 – 45")
+    st.write("AG: 8 – 12")
+
+# -------- ESTILO DARK --------
 st.markdown("""
 <style>
+
+body {
+    background-color: #0e1117;
+    color: #e6edf3;
+}
+
 .block-container {
-    padding-top: 2rem;
+    padding-top: 1.5rem;
 }
+
 h1 {
-    color: #0b3c5d;
+    color: #58a6ff;
+    font-weight: 700;
 }
+
+h2, h3 {
+    color: #8b949e;
+}
+
+.stNumberInput input, .stTextInput input {
+    background-color: #161b22 !important;
+    color: white !important;
+    border-radius: 8px;
+}
+
+.stButton>button {
+    background-color: #238636;
+    color: white;
+    border-radius: 10px;
+    height: 3em;
+    font-weight: bold;
+}
+
+[data-testid="metric-container"] {
+    background-color: #161b22;
+    border-radius: 12px;
+    padding: 10px;
+}
+
+.stAlert {
+    border-radius: 10px;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
-# -------- TITULO --------
-st.title("EVALUACIÓN ÁCIDO-BASE")
-st.caption("Herramienta clínica para apoyo en emergencia")
+# -------- HEADER --------
+st.markdown("""
+<h1>MONITOR ÁCIDO-BASE</h1>
+<p style='color:#8b949e;'>Sistema clínico de interpretación en tiempo real</p>
+""", unsafe_allow_html=True)
 
 # -------------------------------
 # DATOS DEL PACIENTE
@@ -54,8 +105,7 @@ with colC:
     fecha = st.date_input("Fecha", value=date.today())
 
 # -------------------------------
-# ÁCIDO BASE
-st.markdown("---")
+st.divider()
 st.markdown("## Análisis Ácido-Base")
 
 col1, col2, col3, col4, col5, col6 = st.columns(6)
@@ -81,11 +131,9 @@ with col6:
 # -------------------------------
 if st.button("🔍 Analizar paciente"):
 
-    # -------- CÁLCULOS --------
     ag = na - (cl + hco3)
     ag_corregido = ag + 2.5 * (4 - alb)
 
-    # -------- ESTADO --------
     if ph < 7.35:
         estado = "Acidemia"
     elif ph > 7.45:
@@ -93,120 +141,127 @@ if st.button("🔍 Analizar paciente"):
     else:
         estado = "pH normal"
 
-    # -------- TRASTORNO --------
-    if hco3 < 22:
-        trastorno = "Acidosis metabólica"
-    elif hco3 > 26:
-        trastorno = "Alcalosis metabólica"
+    if estado == "Acidemia":
+        if hco3 < 22:
+            trastorno = "Acidosis metabólica"
+        elif pco2 > 45:
+            trastorno = "Acidosis respiratoria"
+        else:
+            trastorno = "Mixto o indeterminado"
+
+    elif estado == "Alcalemia":
+        if hco3 > 26:
+            trastorno = "Alcalosis metabólica"
+        elif pco2 < 35:
+            trastorno = "Alcalosis respiratoria"
+        else:
+            trastorno = "Mixto o indeterminado"
     else:
-        trastorno = "No claro"
+        trastorno = "Posible trastorno mixto"
 
-    # -------- RESULTADOS --------
-    st.markdown("### 📊 Resultados")
+    # -------- MÉTRICAS --------
+    st.markdown("### Resultados")
 
-    colR1, colR2 = st.columns(2)
+    colR1, colR2, colR3 = st.columns(3)
 
     with colR1:
-        st.metric("Anión Gap", f"{ag:.2f}")
+        st.metric("pH", f"{ph:.2f}")
 
     with colR2:
+        st.metric("Anión Gap", f"{ag:.2f}")
+
+    with colR3:
         st.metric("AG corregido", f"{ag_corregido:.2f}")
 
     st.success(f"Estado: {estado}")
     st.info(f"Trastorno principal: {trastorno}")
 
-    # -------- DIAGNÓSTICO --------
-    diagnostico = ""
-
-    if estado == "Acidemia" and "Acidosis metabólica" in trastorno:
-        if ag_corregido > 12:
-            diagnostico = "Acidosis metabólica con anión gap elevado, probable cetoacidosis diabética o acidosis láctica."
-        else:
-            diagnostico = "Acidosis metabólica hiperclorémica, probable diarrea o acidosis tubular renal."
-
-    elif estado == "Alcalemia":
-        diagnostico = "Alcalosis metabólica, considerar vómitos o diuréticos."
-
-    elif estado == "pH normal":
-        diagnostico = "pH normal con posible trastorno mixto."
-
-    st.warning(f"🧠 {diagnostico}")
-
-    # -------- ALERTAS --------
-    st.markdown("### 🚨 Alertas clínicas")
+    # -------- ESTADO CRÍTICO --------
+    st.markdown("### Estado crítico")
 
     if ph < 7.2:
-        st.error("Acidemia severa → riesgo vital")
+        st.error("🔴 ACIDEMIA SEVERA")
     elif ph > 7.55:
-        st.error("Alcalemia severa → riesgo de arritmias")
-    elif ag_corregido > 20:
-        st.warning("Anión gap muy elevado → considerar UCI")
+        st.error("🔴 ALCALOSIS SEVERA")
+    else:
+        st.success("🟢 Estable")
 
-    # -------- TRASTORNOS MIXTOS --------
-    st.markdown("### 🔬 Trastornos mixtos")
+    # -------- WINTER --------
+    st.markdown("### Compensación (Winter)")
 
-    if hco3 < 22:
+    if "Acidosis metabólica" in trastorno:
         pco2_esperado = 1.5 * hco3 + 8
+        st.write(f"PCO2 esperado: {pco2_esperado:.2f} ±2")
 
-        if abs(pco2 - pco2_esperado) > 2:
-            st.warning("Posible trastorno mixto (compensación inadecuada)")
-        else:
+        if abs(pco2 - pco2_esperado) <= 2:
             st.success("Compensación adecuada")
+        else:
+            st.warning("Trastorno mixto")
 
-    # -------- INTERPRETACIÓN --------
-    st.markdown("### 📘 Interpretación clínica")
+    # -------- DELTA GAP --------
+    st.markdown("### Delta Gap")
 
-    interpretacion = ""
+    if ag_corregido > 12:
+        delta_ag = ag_corregido - 12
+        delta_hco3 = 24 - hco3
+        relacion = delta_ag / delta_hco3 if delta_hco3 != 0 else 0
 
-    if ag_corregido > 12 and hco3 < 22:
-        interpretacion = "Acidosis metabólica con anión gap elevado: pensar en cetoacidosis, acidosis láctica, insuficiencia renal o tóxicos."
-    elif ag_corregido <= 12 and hco3 < 22:
-        interpretacion = "Acidosis metabólica hiperclorémica: probable diarrea o acidosis tubular renal."
-    elif hco3 > 26:
-        interpretacion = "Alcalosis metabólica: considerar vómitos, diuréticos o hiperaldosteronismo."
+        st.write(f"Relación Δ/Δ: {relacion:.2f}")
 
-    st.info(interpretacion)
+        if relacion < 0.8:
+            st.warning("Acidosis mixta")
+        elif 0.8 <= relacion <= 2:
+            st.success("Acidosis pura")
+        else:
+            st.warning("Alcalosis asociada")
+
+    # -------- DIAGNÓSTICO --------
+    if "Acidosis metabólica" in trastorno:
+        if ag_corregido > 12:
+            diagnostico = "Acidosis metabólica con anión gap elevado"
+        else:
+            diagnostico = "Acidosis metabólica hiperclorémica"
+
+    elif "Alcalosis metabólica" in trastorno:
+        diagnostico = "Alcalosis metabólica"
+
+    elif "respiratoria" in trastorno:
+        diagnostico = "Trastorno respiratorio"
+
+    else:
+        diagnostico = "Trastorno mixto"
+
+    st.warning(diagnostico)
 
     # -------- REPORTE --------
-    st.markdown("### 📄 Reporte clínico")
-
     reporte = f"""
 Paciente: {nombre}
-Edad: {edad} años
+Edad: {edad}
 Fecha: {fecha}
 
 pH: {ph}
-HCO3-: {hco3}
+HCO3: {hco3}
 PCO2: {pco2}
-Na: {na}
-Cl: {cl}
-Albúmina: {alb}
 
-Anión Gap: {ag:.2f}
+AG: {ag:.2f}
 AG corregido: {ag_corregido:.2f}
 
-Estado ácido-base: {estado}
-Trastorno principal: {trastorno}
+Estado: {estado}
+Trastorno: {trastorno}
 
-Diagnóstico probable:
-{diagnostico}
-
-Interpretación:
-{interpretacion}
+Diagnóstico: {diagnostico}
 """
 
-    st.text_area("Reporte listo para copiar", reporte, height=300)
+    st.text_area("Reporte", reporte, height=250)
 
-    # -------- PDF --------
     pdf_buffer = generar_pdf_buffer(reporte)
 
     st.download_button(
-        label="📄 Descargar PDF",
+        label="Descargar PDF",
         data=pdf_buffer,
-        file_name="reporte_clinico.pdf",
+        file_name="reporte.pdf",
         mime="application/pdf"
     )
 
 # -------------------------------
-st.markdown("---")
-st.caption("⚠️ Uso clínico orientativo")
+st.caption("Uso clínico orientativo")
