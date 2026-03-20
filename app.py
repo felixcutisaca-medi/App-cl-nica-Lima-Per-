@@ -22,7 +22,7 @@ def generar_pdf_buffer(texto):
 # -------- CONFIG --------
 st.set_page_config(page_title="Sistema Ácido-Base", page_icon="🩺", layout="wide")
 
-# -------- ESTILO PRO --------
+# -------- ESTILO --------
 st.markdown("""
 <style>
 .block-container {
@@ -31,17 +31,12 @@ st.markdown("""
 h1 {
     color: #0b3c5d;
 }
-.stMetric {
-    background-color: #111;
-    padding: 10px;
-    border-radius: 10px;
-}
 </style>
 """, unsafe_allow_html=True)
 
 # -------- TITULO --------
 st.title("🩺 Sistema de Evaluación Ácido-Base – Lima")
-st.caption("Herramienta clínica para apoyo en emergencia y hospitalización")
+st.caption("Herramienta clínica para apoyo en emergencia")
 
 # -------------------------------
 # DATOS DEL PACIENTE
@@ -86,11 +81,11 @@ with col6:
 # -------------------------------
 if st.button("🔍 Analizar paciente"):
 
-    # Cálculos
+    # -------- CÁLCULOS --------
     ag = na - (cl + hco3)
     ag_corregido = ag + 2.5 * (4 - alb)
 
-    # Estado
+    # -------- ESTADO --------
     if ph < 7.35:
         estado = "Acidemia"
     elif ph > 7.45:
@@ -98,7 +93,7 @@ if st.button("🔍 Analizar paciente"):
     else:
         estado = "pH normal"
 
-    # Trastorno
+    # -------- TRASTORNO --------
     if hco3 < 22:
         trastorno = "Acidosis metabólica"
     elif hco3 > 26:
@@ -106,7 +101,7 @@ if st.button("🔍 Analizar paciente"):
     else:
         trastorno = "No claro"
 
-    # -------- RESULTADOS VISUALES --------
+    # -------- RESULTADOS --------
     st.markdown("### 📊 Resultados")
 
     colR1, colR2 = st.columns(2)
@@ -120,7 +115,7 @@ if st.button("🔍 Analizar paciente"):
     st.success(f"Estado: {estado}")
     st.info(f"Trastorno principal: {trastorno}")
 
-    # -------- DIAGNÓSTICO AUTOMÁTICO --------
+    # -------- DIAGNÓSTICO --------
     diagnostico = ""
 
     if estado == "Acidemia" and "Acidosis metabólica" in trastorno:
@@ -137,8 +132,43 @@ if st.button("🔍 Analizar paciente"):
 
     st.warning(f"🧠 {diagnostico}")
 
-    # -------- REPORTE CLÍNICO PRO --------
-    st.markdown("### 📄 Reporte Clínico")
+    # -------- ALERTAS --------
+    st.markdown("### 🚨 Alertas clínicas")
+
+    if ph < 7.2:
+        st.error("Acidemia severa → riesgo vital")
+    elif ph > 7.55:
+        st.error("Alcalemia severa → riesgo de arritmias")
+    elif ag_corregido > 20:
+        st.warning("Anión gap muy elevado → considerar UCI")
+
+    # -------- TRASTORNOS MIXTOS --------
+    st.markdown("### 🔬 Trastornos mixtos")
+
+    if hco3 < 22:
+        pco2_esperado = 1.5 * hco3 + 8
+
+        if abs(pco2 - pco2_esperado) > 2:
+            st.warning("Posible trastorno mixto (compensación inadecuada)")
+        else:
+            st.success("Compensación adecuada")
+
+    # -------- INTERPRETACIÓN --------
+    st.markdown("### 📘 Interpretación clínica")
+
+    interpretacion = ""
+
+    if ag_corregido > 12 and hco3 < 22:
+        interpretacion = "Acidosis metabólica con anión gap elevado: pensar en cetoacidosis, acidosis láctica, insuficiencia renal o tóxicos."
+    elif ag_corregido <= 12 and hco3 < 22:
+        interpretacion = "Acidosis metabólica hiperclorémica: probable diarrea o acidosis tubular renal."
+    elif hco3 > 26:
+        interpretacion = "Alcalosis metabólica: considerar vómitos, diuréticos o hiperaldosteronismo."
+
+    st.info(interpretacion)
+
+    # -------- REPORTE --------
+    st.markdown("### 📄 Reporte clínico")
 
     reporte = f"""
 Paciente: {nombre}
@@ -160,6 +190,9 @@ Trastorno principal: {trastorno}
 
 Diagnóstico probable:
 {diagnostico}
+
+Interpretación:
+{interpretacion}
 """
 
     st.text_area("Reporte listo para copiar", reporte, height=300)
