@@ -1,6 +1,7 @@
 import streamlit as st
+from datetime import date
 
-# -------- PDF DESCARGA DIRECTA --------
+# -------- PDF --------
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from io import BytesIO
@@ -19,80 +20,75 @@ def generar_pdf_buffer(texto):
     return buffer
 
 # -------- CONFIG --------
-st.set_page_config(page_title="App Clínica Lima", page_icon="🩺", layout="wide")
+st.set_page_config(page_title="Sistema Ácido-Base", page_icon="🩺", layout="wide")
 
-st.title("🩺 Evaluación Clínica Integral - Lima")
-st.markdown("Herramienta de apoyo para emergencia")
+# -------- ESTILO PRO --------
+st.markdown("""
+<style>
+.block-container {
+    padding-top: 2rem;
+}
+h1 {
+    color: #0b3c5d;
+}
+.stMetric {
+    background-color: #111;
+    padding: 10px;
+    border-radius: 10px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# -------- TITULO --------
+st.title("🩺 Sistema de Evaluación Ácido-Base – Lima")
+st.caption("Herramienta clínica para apoyo en emergencia y hospitalización")
 
 # -------------------------------
-# GLUCOSA
-st.header("Glucosa")
-glucosa = st.number_input("Glucosa (mg/dL)", min_value=0.0)
+# DATOS DEL PACIENTE
+st.markdown("## 👤 Datos del paciente")
 
-if st.button("Evaluar Glucosa"):
-    if glucosa < 70:
-        st.error("Hipoglucemia")
-    elif glucosa <= 100:
-        st.success("Normal")
-    elif glucosa <= 125:
-        st.warning("Prediabetes")
-    else:
-        st.error("Diabetes Mellitus")
+colA, colB, colC = st.columns(3)
+
+with colA:
+    nombre = st.text_input("Nombre")
+
+with colB:
+    edad = st.number_input("Edad", min_value=0)
+
+with colC:
+    fecha = st.date_input("Fecha", value=date.today())
 
 # -------------------------------
-# IMC
+# ÁCIDO BASE
 st.markdown("---")
-st.header("IMC")
+st.markdown("## 🧠 Análisis Ácido-Base")
 
-col1, col2 = st.columns(2)
+col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 with col1:
-    peso = st.number_input("Peso (kg)", min_value=0.0)
-
-with col2:
-    talla = st.number_input("Talla (m)", min_value=0.0)
-
-if st.button("Calcular IMC"):
-    if talla > 0:
-        imc = peso / (talla ** 2)
-        st.metric("IMC", f"{imc:.2f}")
-    else:
-        st.error("Ingrese talla válida")
-
-# -------------------------------
-# ACIDO BASE
-st.markdown("---")
-st.header("🧠 Ácido-Base")
-
-col3, col4, col5, col6, col7, col8 = st.columns(6)
-
-with col3:
     ph = st.number_input("pH", value=7.4)
 
-with col4:
+with col2:
     hco3 = st.number_input("HCO3-", value=24.0)
 
-with col5:
+with col3:
     pco2 = st.number_input("PCO2", value=40.0)
 
-with col6:
+with col4:
     na = st.number_input("Na+", value=140.0)
 
-with col7:
+with col5:
     cl = st.number_input("Cl-", value=100.0)
 
-with col8:
-    alb = st.number_input("Albúmina (g/dL)", value=4.0)
+with col6:
+    alb = st.number_input("Albúmina", value=4.0)
 
-# -------- BOTÓN PRINCIPAL --------
-if st.button("Analizar ácido-base completo"):
+# -------------------------------
+if st.button("🔍 Analizar paciente"):
 
     # Cálculos
     ag = na - (cl + hco3)
     ag_corregido = ag + 2.5 * (4 - alb)
-
-    st.metric("Anión Gap", f"{ag:.2f}")
-    st.metric("AG corregido", f"{ag_corregido:.2f}")
 
     # Estado
     if ph < 7.35:
@@ -110,24 +106,65 @@ if st.button("Analizar ácido-base completo"):
     else:
         trastorno = "No claro"
 
-    st.write(f"Estado: {estado}")
-    st.write(f"Trastorno: {trastorno}")
+    # -------- RESULTADOS VISUALES --------
+    st.markdown("### 📊 Resultados")
 
-    # -------- REPORTE --------
+    colR1, colR2 = st.columns(2)
+
+    with colR1:
+        st.metric("Anión Gap", f"{ag:.2f}")
+
+    with colR2:
+        st.metric("AG corregido", f"{ag_corregido:.2f}")
+
+    st.success(f"Estado: {estado}")
+    st.info(f"Trastorno principal: {trastorno}")
+
+    # -------- DIAGNÓSTICO AUTOMÁTICO --------
+    diagnostico = ""
+
+    if estado == "Acidemia" and "Acidosis metabólica" in trastorno:
+        if ag_corregido > 12:
+            diagnostico = "Acidosis metabólica con anión gap elevado, probable cetoacidosis diabética o acidosis láctica."
+        else:
+            diagnostico = "Acidosis metabólica hiperclorémica, probable diarrea o acidosis tubular renal."
+
+    elif estado == "Alcalemia":
+        diagnostico = "Alcalosis metabólica, considerar vómitos o diuréticos."
+
+    elif estado == "pH normal":
+        diagnostico = "pH normal con posible trastorno mixto."
+
+    st.warning(f"🧠 {diagnostico}")
+
+    # -------- REPORTE CLÍNICO PRO --------
+    st.markdown("### 📄 Reporte Clínico")
+
     reporte = f"""
-Paciente con pH {ph}, HCO3- {hco3} mEq/L, PCO2 {pco2} mmHg.
-Na {na}, Cl {cl}, Albúmina {alb} g/dL.
+Paciente: {nombre}
+Edad: {edad} años
+Fecha: {fecha}
+
+pH: {ph}
+HCO3-: {hco3}
+PCO2: {pco2}
+Na: {na}
+Cl: {cl}
+Albúmina: {alb}
 
 Anión Gap: {ag:.2f}
 AG corregido: {ag_corregido:.2f}
 
-Estado: {estado}
-Trastorno: {trastorno}
+Estado ácido-base: {estado}
+Trastorno principal: {trastorno}
+
+Diagnóstico probable:
+{diagnostico}
 """
 
-    st.text_area("Reporte clínico", reporte, height=250)
+    st.text_area("Reporte listo para copiar", reporte, height=300)
 
-    # -------- PDF DESCARGA --------
+    # -------- PDF --------
     pdf_buffer = generar_pdf_buffer(reporte)
 
     st.download_button(
@@ -139,4 +176,4 @@ Trastorno: {trastorno}
 
 # -------------------------------
 st.markdown("---")
-st.caption("Uso académico")
+st.caption("⚠️ Uso clínico orientativo")
