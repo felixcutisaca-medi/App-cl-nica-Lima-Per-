@@ -35,12 +35,12 @@ h1 {
 """, unsafe_allow_html=True)
 
 # -------- TITULO --------
-st.title("🩺 Sistema de Evaluación Ácido-Base – Lima")
+st.title("EVALUACIÓN ÁCIDO-BASE")
 st.caption("Herramienta clínica para apoyo en emergencia")
 
 # -------------------------------
 # DATOS DEL PACIENTE
-st.markdown("## 👤 Datos del paciente")
+st.markdown("## Datos del paciente")
 
 colA, colB, colC = st.columns(3)
 
@@ -56,7 +56,7 @@ with colC:
 # -------------------------------
 # ÁCIDO BASE
 st.markdown("---")
-st.markdown("## 🧠 Análisis Ácido-Base")
+st.markdown("## Análisis Ácido-Base")
 
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
